@@ -1,0 +1,12 @@
+{{- if .Values.ssrfProxy.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dify.ssrfProxy.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: ssrf-proxy
+data:
+  squid.conf: |-
+    {{- include "dify.ssrfProxy.config.squid" . | indent 4 }}
+{{- end }}

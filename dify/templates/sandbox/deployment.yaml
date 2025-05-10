@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dify.sandbox.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: sandbox
+spec:
+  {{- if not .Values.sandbox.autoscaling.enabled }}
+  replicas: {{ .Values.sandbox.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: sandbox
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: sandbox
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/sandbox/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/sandbox/secret.yaml") . | sha256sum }}
+      {{- if .Values.sandbox.podAnnotations }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "dify.sandbox.serviceAccountName" . }}
+      {{- if .Values.sandbox.podSecurityContext }}
+      securityContext:
+        {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.podSecurityContext "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.image.sandbox.pullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.image.sandbox.pullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: sandbox
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image.sandbox "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.sandbox.pullPolicy }}
+          {{- if .Values.sandbox.containerSecurityContext }}
+          securityContext:
+            {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.sandbox.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.sandbox.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.sandbox.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.sandbox.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.sandbox.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.sandbox.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.sandbox.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.sandbox.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.sandbox.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.sandbox.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.sandbox.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.sandbox.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.sandbox.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.sandbox.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.sandbox.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.sandbox.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.sandbox.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.sandbox.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.sandbox.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.sandbox.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.sandbox.startupProbe.successThreshold }}
+          {{- end }}
+          env:
+            - name: API_KEY
+              value: {{ .Values.sandbox.auth.apiKey | quote }}
+          {{- if .Values.sandbox.extraEnv }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.extraEnv "context" $) | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ template "dify.sandbox.fullname" . }}
+            - secretRef:
+                name: {{ template "dify.sandbox.fullname" . }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.sandbox.service.port }}
+              protocol: TCP
+          {{- if .Values.sandbox.resources }}
+          resources: {{- toYaml .Values.sandbox.resources | nindent 12 }}
+          {{- end }}
+      {{- if .Values.sandbox.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.sandbox.affinity }}
+      affinity: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.affinity "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.sandbox.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.tolerations "context" $) | nindent 8 }}
+      {{- end }}

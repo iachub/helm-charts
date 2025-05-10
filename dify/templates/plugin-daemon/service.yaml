@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dify.pluginDaemon.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: plugin-daemon
+    {{- if .Values.pluginDaemon.service.labels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.service.labels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.pluginDaemon.service.annotations }}
+  annotations:
+    {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.service.annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.pluginDaemon.service.clusterIP }}
+  clusterIP: {{ .Values.pluginDaemon.service.clusterIP }}
+  {{- end }}
+  ports:
+    - name: daemon
+      port: {{ .Values.pluginDaemon.service.ports.daemon }}
+      protocol: TCP
+      targetPort: daemon
+    {{- if .Values.pluginDaemon.service.ports.pluginInstall }}
+    - name: plugin-install
+      port: {{ .Values.pluginDaemon.service.ports.pluginInstall }}
+      protocol: TCP
+      targetPort: plugin-install
+    {{- end }}
+  selector:
+    {{- include "common.labels.matchLabels" . | nindent 4 }}
+    app.kubernetes.io/component: plugin-daemon

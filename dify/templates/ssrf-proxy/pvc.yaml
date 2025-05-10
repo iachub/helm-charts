@@ -1,0 +1,26 @@
+{{- $ssrfProxyPvc := .Values.ssrfProxy.log.persistence.persistentVolumeClaim -}}
+{{- if and .Values.ssrfProxy.log.persistence.enabled (not $ssrfProxyPvc.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-logs" (include "dify.ssrfProxy.fullname" . | trunc 58) }}
+{{- with .Values.ssrfProxy.log.persistence.annotations  }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $ssrfProxyPvc.accessModes | quote }}
+  {{- if $ssrfProxyPvc.storageClass }}
+    {{- if eq "-" $ssrfProxyPvc.storageClass }}
+  storageClassName: ""
+    {{- else }}
+  storageClassName: {{ $ssrfProxyPvc.storageClass }}
+    {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $ssrfProxyPvc.size }}
+{{- end }}

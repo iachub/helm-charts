@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dify.pluginDaemon.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: plugin-daemon
+data:
+  {{- include "dify.pluginDaemon.config" . | nindent 2 }}

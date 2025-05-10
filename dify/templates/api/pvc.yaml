@@ -1,0 +1,28 @@
+{{- if not (or .Values.externalS3.enabled) }}
+{{- $apiPvc := .Values.api.persistence.persistentVolumeClaim -}}
+{{- if (not $apiPvc.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s" (include "dify.api.fullname" . | trunc 58) }}
+{{- with .Values.api.persistence.annotations  }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $apiPvc.accessModes | quote }}
+  {{- if $apiPvc.storageClass }}
+    {{- if eq "-" $apiPvc.storageClass }}
+  storageClassName: ""
+    {{- else }}
+  storageClassName: {{ $apiPvc.storageClass }}
+    {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $apiPvc.size }}
+{{- end }}
+{{- end }}

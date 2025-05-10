@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dify.sandbox.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: sandbox
+    {{- if .Values.sandbox.service.labels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.service.labels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.sandbox.service.annotations }}
+  annotations:
+    {{- include "common.tplvalues.render" (dict "value" .Values.sandbox.service.annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.sandbox.service.clusterIP }}
+  clusterIP: {{ .Values.sandbox.service.clusterIP }}
+  {{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.sandbox.service.port }}
+      protocol: TCP
+      targetPort: http
+  selector:
+    {{- include "common.labels.matchLabels" . | nindent 4 }}
+    app.kubernetes.io/component: sandbox

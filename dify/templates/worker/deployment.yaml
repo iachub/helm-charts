@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dify.worker.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/worker/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/worker/secret.yaml") . | sha256sum }}
+      {{- if .Values.worker.podAnnotations }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.worker.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "dify.worker.serviceAccountName" . }}
+      {{- if .Values.worker.podSecurityContext }}
+      securityContext:
+        {{- include "common.tplvalues.render" (dict "value" .Values.worker.podSecurityContext "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.image.worker.pullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.image.worker.pullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image.worker "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.worker.pullPolicy }}
+          {{- if .Values.worker.containerSecurityContext }}
+          securityContext:
+            {{- include "common.tplvalues.render" (dict "value" .Values.worker.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.worker.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customLivenessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.worker.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customReadinessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.worker.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.worker.customStartupProbe "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: MODE
+              value: "worker"
+          {{- if .Values.worker.extraEnv }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.worker.extraEnv "context" $) | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dify.worker.fullname" . }}
+          {{- if .Values.worker.resources }}
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+          {{- end }}
+          {{- if and (not .Values.externalS3.enabled) .Values.api.persistence.mountPath }}
+          volumeMounts:
+            - name: storage
+              mountPath: {{ .Values.api.persistence.mountPath }}
+              {{- if .Values.api.persistence.persistentVolumeClaim.subPath }}
+              subPath: {{ .Values.api.persistence.persistentVolumeClaim.subPath }}
+              {{- end }}
+          {{- end }}
+      {{- if .Values.worker.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" (dict "value" .Values.worker.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.affinity }}
+      affinity: {{- include "common.tplvalues.render" (dict "value" .Values.worker.affinity "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.worker.tolerations "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if and (not .Values.externalS3.enabled) .Values.api.persistence.mountPath }}
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.api.persistence.persistentVolumeClaim.existingClaim | default (include "dify.api.fullname" .) }}
+      {{- end }}

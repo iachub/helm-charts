@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dify.web.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: web
+    {{- if .Values.web.service.labels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.web.service.labels "context" $) | nindent 4 }}
+    {{- end }}
+  {{- if .Values.web.service.annotations }}
+  annotations:
+    {{- include "common.tplvalues.render" (dict "value" .Values.web.service.annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- if .Values.web.service.clusterIP }}
+  clusterIP: {{ .Values.web.service.clusterIP }}
+  {{- end }}
+  ports:
+    - name: http
+      port: {{ .Values.web.service.port }}
+      protocol: TCP
+      targetPort: http
+  selector:
+    {{- include "common.labels.matchLabels" . | nindent 4 }}
+    app.kubernetes.io/component: web

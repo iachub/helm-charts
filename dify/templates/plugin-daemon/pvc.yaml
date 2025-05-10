@@ -1,0 +1,31 @@
+{{- $pluginDaemonPvc := .Values.pluginDaemon.persistence.persistentVolumeClaim -}}
+{{- if and .Values.pluginDaemon.enabled (not $pluginDaemonPvc.existingClaim) }}
+{{- if not (or
+  (and .Values.externalS3.enabled .Values.externalS3.bucketName.pluginDaemon)
+)
+}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s" (include "dify.pluginDaemon.fullname" . | trunc 58) }}
+{{- with .Values.pluginDaemon.persistence.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $pluginDaemonPvc.accessModes | quote }}
+  {{- if $pluginDaemonPvc.storageClass }}
+    {{- if eq "-" $pluginDaemonPvc.storageClass }}
+  storageClassName: ""
+    {{- else }}
+  storageClassName: {{ $pluginDaemonPvc.storageClass }}
+    {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $pluginDaemonPvc.size }}
+{{- end }}
+{{- end }}

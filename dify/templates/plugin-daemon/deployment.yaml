@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dify.pluginDaemon.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: plugin-daemon
+spec:
+  {{- if not .Values.pluginDaemon.autoscaling.enabled }}
+  replicas: {{ .Values.pluginDaemon.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: plugin-daemon
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: plugin-daemon
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/plugin-daemon/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/plugin-daemon/secret.yaml") . | sha256sum }}
+      {{- if .Values.pluginDaemon.podAnnotations }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "dify.pluginDaemon.serviceAccountName" . }}
+      {{- if .Values.pluginDaemon.podSecurityContext }}
+      securityContext:
+        {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.podSecurityContext "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.image.pluginDaemon.pullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.image.pluginDaemon.pullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: plugin-daemon
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image.pluginDaemon "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.pluginDaemon.pullPolicy }}
+          {{- if .Values.pluginDaemon.containerSecurityContext }}
+          securityContext:
+            {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.pluginDaemon.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.customLivenessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.pluginDaemon.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.customReadinessProbe "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.pluginDaemon.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.customStartupProbe "context" $) | nindent 12 }}
+          {{- end }}
+          env:
+            - name: SERVER_KEY
+              value: {{ .Values.pluginDaemon.auth.serverKey | quote }}
+            - name: DIFY_API_KEY
+              value: {{ .Values.pluginDaemon.auth.difyApiKey | quote }}
+          {{- if .Values.pluginDaemon.extraEnv }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.extraEnv "context" $) | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ template "dify.pluginDaemon.fullname" . }}
+            - secretRef:
+                name: {{ template "dify.pluginDaemon.fullname" . }}
+          ports:
+            - name: daemon
+              containerPort: {{ .Values.pluginDaemon.service.ports.daemon }}
+              protocol: TCP
+            {{- if .Values.pluginDaemon.service.ports.pluginInstall }}
+            - name: plugin-install
+              containerPort: {{ .Values.pluginDaemon.service.ports.pluginInstall }}
+              protocol: TCP
+            {{- end }}
+          {{- if .Values.pluginDaemon.resources }}
+          resources: {{- toYaml .Values.pluginDaemon.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.pluginDaemon.persistence.mountPath }}
+          volumeMounts:
+            - name: storage
+              mountPath: {{ .Values.pluginDaemon.persistence.mountPath }}
+              {{- if .Values.pluginDaemon.persistence.persistentVolumeClaim.subPath }}
+              subPath: {{ .Values.pluginDaemon.persistence.persistentVolumeClaim.subPath }}
+              {{- end }}
+          {{- end }}
+      {{- if .Values.pluginDaemon.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.pluginDaemon.affinity }}
+      affinity: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.affinity "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.pluginDaemon.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.pluginDaemon.tolerations "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.pluginDaemon.persistence.mountPath }}
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.pluginDaemon.persistence.persistentVolumeClaim.existingClaim | default (include "dify.pluginDaemon.fullname" .) }}
+      {{- end }}

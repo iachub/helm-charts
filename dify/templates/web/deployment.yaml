@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dify.web.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  {{- if not .Values.web.autoscaling.enabled }}
+  replicas: {{ .Values.web.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.matchLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        app.kubernetes.io/component: web
+      {{- if .Values.web.podAnnotations }}
+      annotations:
+        {{- include "common.tplvalues.render" (dict "value" .Values.web.podAnnotations "context" $) | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "dify.web.serviceAccountName" . }}
+      {{- if .Values.web.podSecurityContext }}
+      securityContext:
+        {{- include "common.tplvalues.render" (dict "value" .Values.web.podSecurityContext "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.image.web.pullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.image.web.pullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: web
+          image: {{ include "common.images.image" (dict "imageRoot" .Values.image.web "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.web.pullPolicy }}
+          {{- if .Values.web.containerSecurityContext }}
+          securityContext:
+            {{- include "common.tplvalues.render" (dict "value" .Values.web.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
+          {{- if .Values.web.customLivenessProbe }}
+          livenessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.web.customLivenessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.web.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.web.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.web.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.web.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.web.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.web.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.web.customReadinessProbe }}
+          readinessProbe: {{- include "common.tplvalues.render" (dict "value" .Values.web.customReadinessProbe "context" $) | nindent 12 }}
+          {{- else if .Values.web.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.web.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.web.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.web.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.web.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.web.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.web.customStartupProbe }}
+          startupProbe: {{- include "common.tplvalues.render" (dict "value" .Values.web.customStartupProbe "context" $) | nindent 12 }}
+          {{- else if .Values.web.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.web.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.web.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.web.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.web.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.web.startupProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.web.extraEnv }}
+          env:
+            {{- include "common.tplvalues.render" (dict "value" .Values.web.extraEnv "context" $) | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dify.web.fullname" . }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.web.service.port }}
+              protocol: TCP
+          {{- if .Values.web.resources }}
+          resources: {{- toYaml .Values.web.resources | nindent 12 }}
+          {{- end }}
+      {{- if .Values.web.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" (dict "value" .Values.web.nodeSelector "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.web.affinity }}
+      affinity: {{- include "common.tplvalues.render" (dict "value" .Values.web.affinity "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.web.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.web.tolerations "context" $) | nindent 8 }}
+      {{- end }}

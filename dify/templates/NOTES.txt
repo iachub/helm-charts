@@ -1,0 +1,118 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.web.enabled }}
+=====================================================================
+Access Dify Web Interface
+=====================================================================
+
+The Dify web interface can be accessed via:
+
+  http://<your-cluster-ip>:{{ .Values.web.service.port }}
+
+{{- end }}
+
+{{- if .Values.api.enabled }}
+=====================================================================
+Access Dify API
+=====================================================================
+
+The Dify API can be accessed via:
+
+  http://<your-cluster-ip>:{{ .Values.api.service.port }}
+
+Health check endpoint: http://<your-cluster-ip>:{{ .Values.api.service.port }}/health
+{{- end }}
+
+{{- if .Values.sandbox.enabled }}
+=====================================================================
+Sandbox Service
+=====================================================================
+
+The Sandbox service is running on port {{ .Values.sandbox.service.port }}
+API Key: {{ .Values.sandbox.auth.apiKey }}
+{{- end }}
+
+{{- if .Values.pluginDaemon.enabled }}
+=====================================================================
+Plugin Daemon Service
+=====================================================================
+
+The Plugin Daemon service is running on port {{ .Values.pluginDaemon.service.ports.daemon }}
+{{- if .Values.pluginDaemon.service.ports.pluginInstall }}
+Plugin Installation port: {{ .Values.pluginDaemon.service.ports.pluginInstall }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.ssrfProxy.enabled }}
+=====================================================================
+SSRF Proxy Service
+=====================================================================
+
+The SSRF Proxy service is running on port {{ .Values.ssrfProxy.service.port }}
+{{- end }}
+
+=====================================================================
+Database Information
+=====================================================================
+
+{{- if .Values.postgresql.enabled }}
+PostgreSQL:
+  Host: {{ .Release.Name }}-postgresql{{ if eq .Values.postgresql.architecture "replication" }}-primary{{ end }}
+  Port: 5432
+  Database: {{ .Values.postgresql.global.postgresql.auth.database }}
+  Username: postgres
+  Password: {{ .Values.postgresql.global.postgresql.auth.postgresPassword }}
+{{- else if .Values.externalPostgres.enabled }}
+PostgreSQL (External):
+  Host: {{ .Values.externalPostgres.address }}
+  Port: {{ .Values.externalPostgres.port }}
+  Database: {{ .Values.externalPostgres.database.api }}
+  Username: {{ .Values.externalPostgres.username }}
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+Redis:
+  Host: {{ .Release.Name }}-redis-master
+  Port: {{ .Values.redis.master.service.ports.redis }}
+{{- else if .Values.externalRedis.enabled }}
+Redis (External):
+  Host: {{ .Values.externalRedis.host }}
+  Port: {{ .Values.externalRedis.port }}
+{{- end }}
+
+{{- if .Values.weaviate.enabled }}
+Weaviate:
+  Endpoint: http://{{ .Release.Name }}-weaviate:8080
+  {{- if .Values.weaviate.authentication.apikey.enabled }}
+  API Key: {{ index .Values.weaviate.authentication.apikey.allowed_keys 0 }}
+  {{- end }}
+{{- else if .Values.externalWeaviate.enabled }}
+Weaviate (External):
+  Endpoint: {{ .Values.externalWeaviate.endpoint }}
+{{- end }}
+
+=====================================================================
+Next Steps
+=====================================================================
+
+1. Configure your ingress or load balancer to expose the Dify web and API services.
+2. Access the Dify web interface to start creating your AI applications.
+3. For more information, visit the Dify documentation at https://docs.dify.ai/
+
+=====================================================================
+Troubleshooting
+=====================================================================
+
+If you encounter any issues:
+
+1. Check pod status: kubectl get pods -n {{ .Release.Namespace }}
+2. Check pod logs: kubectl logs -n {{ .Release.Namespace }} <pod-name>
+3. Check service status: kubectl get svc -n {{ .Release.Namespace }}
+4. Ensure all required services are running and accessible.
