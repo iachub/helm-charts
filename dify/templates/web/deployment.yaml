@@ -18,8 +18,9 @@ spec:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
         app.kubernetes.io/component: web
-      {{- if .Values.web.podAnnotations }}
       annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/web/configmap.yaml") . | sha256sum }}
+      {{- if .Values.web.podAnnotations }}
         {{- include "common.tplvalues.render" (dict "value" .Values.web.podAnnotations "context" $) | nindent 8 }}
       {{- end }}
     spec:
