@@ -41,6 +41,12 @@ Return the proper web fullname
 {{- printf "%s-worker" (include "common.names.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{/*
+Return the proper proxy fullname
+*/}}
+{{- define "dify.proxy.fullname" -}}
+{{- printf "%s-proxy" (include "common.names.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 
 {{/*
 Return the proper api image name
@@ -65,7 +71,7 @@ Create the name of the service account to use for the Proxy
 */}}
 {{- define "dify.proxy.serviceAccountName" -}}
 {{- if .Values.proxy.serviceAccount.create -}}
-    {{ default (include "dify.nginx.fullname" .) .Values.proxy.serviceAccount.name | trunc 63 | trimSuffix "-" }}
+    {{ default (include "dify.proxy.fullname" .) .Values.proxy.serviceAccount.name | trunc 63 | trimSuffix "-" }}
 {{- else -}}
     {{ default "default" .Values.proxy.serviceAccount.name }}
 {{- end -}}
