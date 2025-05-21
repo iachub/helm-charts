@@ -1,0 +1,33 @@
+{{- if .Values.sandbox.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dify.sandbox.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    app.kubernetes.io/component: sandbox
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ template "dify.sandbox.fullname" . }}
+  minReplicas: {{ .Values.sandbox.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.sandbox.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.sandbox.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.sandbox.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.sandbox.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.sandbox.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

@@ -97,7 +97,7 @@ api:
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   ## Configure extra options for API containers' liveness, readiness, and startup probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   ## @param api.livenessProbe.enabled Enable livenessProbe on API nodes
@@ -251,7 +251,7 @@ worker:
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   ## Configure extra options for worker containers' liveness, readiness, and startup probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   ## @param worker.customLivenessProbe Custom livenessProbe that overrides the default one
@@ -301,6 +301,7 @@ web:
   enabled: true
   replicas: 1
   resources: { }
+  podAnnotations: { }
   nodeSelector: { }
   affinity: { }
   tolerations: [ ]
@@ -309,7 +310,7 @@ web:
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   ## Configure extra options for web containers' liveness, readiness, and startup probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   ## @param web.livenessProbe.enabled Enable livenessProbe on web nodes
@@ -389,7 +390,7 @@ sandbox:
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
   ## Configure extra options for sandbox containers' liveness, readiness, and startup probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   ## @param sandbox.livenessProbe.enabled Enable livenessProbe on sandbox nodes
